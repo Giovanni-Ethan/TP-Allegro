@@ -19,7 +19,7 @@ void DrawScaledText(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x, float y,
       yscale);  // Apply scaling (e.g., sx=2.0, sy=2.0 for double size)
   al_use_transform(&transform);  // Use the transform for subsequent drawing
 
-  al_draw_multiline_text(font, color, x, y, 150, 10, alignment, text);
+  al_draw_text(font, color, x, y, alignment, text);
   // al_draw_text(font, color, x, y, alignment, text);
   al_identity_transform(&transform);
   al_use_transform(&transform);  // Use the transform for subsequent drawing

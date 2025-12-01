@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "renderer.h"
 
 #include <allegro5/allegro5.h>
 #include <stdio.h>
@@ -46,3 +47,30 @@ void ShuffleArray(int* array, int size) {
     }
   }
 }
+
+void ShuffleCardGroup(CardGroup* group) {
+    if (group->count > 1) {
+        int i;
+        // Percorre o array de cartas
+        for (i = 0; i < group->count - 1; i++) {
+            // Gera um índice aleatório 'j' entre 'i' e 'group->count - 1'
+            // A lógica de randomização abaixo garante que a carta só é trocada com uma carta que ainda não foi "finalizada" (da posição i em diante).
+
+            int j = i + rand() / (RAND_MAX / (group->count - i) + 1);
+            if (j == i) {
+                continue;
+            }
+
+            // Realiza a troca dos elementos 
+            Card temp = group->cards[j];
+            group->cards[j] = group->cards[i];
+            group->cards[i] = temp;
+        }
+    }
+}
+
+int GetRandomInt (int min, int max){
+  if (min > max) return min;
+  return rand() % (max - min + 1) + min;
+}
+

@@ -267,35 +267,61 @@ void RenderDeck(Renderer* renderer, int x_left, int y_top) {
   al_destroy_bitmap(deck_bitmap);
 }
 
-void RenderHealthBar(float x_begin, float x_end, float y_down_left,
-                     ALLEGRO_FONT* font) {
-  float mid_y = y_down_left - (HEALTH_BAR_HEIGHT * 0.78);
+// Atualiza a barra de vida para ser proporcional à vida atual/máxima
+void RenderHealthBar(float x_begin, float x_end, float y_down_left, int current_health, int max_health) {
+    float mid_y = y_down_left - (HEALTH_BAR_HEIGHT * 0.78);
+    float total_width = x_end - x_begin;
 
-  al_draw_filled_rounded_rectangle(
-      x_begin - HEALTH_BAR_BACKGROUND_EXTRA,
-      y_down_left - HEALTH_BAR_BACKGROUND_EXTRA,
-      x_end + HEALTH_BAR_BACKGROUND_EXTRA,
-      y_down_left - HEALTH_BAR_HEIGHT + HEALTH_BAR_BACKGROUND_EXTRA,
-      HEALTH_BAR_RX, HEALTH_BAR_RY, al_map_rgb(255, 255, 255));
-  char text[100] = "";
-  sprintf(text, "Vida?");
-  float x_scale = 2.0, y_scale = 2.0;
-  DrawScaledText(font, al_map_rgb(0, 0, 0), (x_begin + x_end) / 2.0 / x_scale,
-                 mid_y / y_scale, x_scale, y_scale, ALLEGRO_ALIGN_CENTRE, text);
+    // 1. Desenha o fundo da barra (parte vazia/vermelha)
+    al_draw_filled_rounded_rectangle(
+        x_begin - HEALTH_BAR_BACKGROUND_EXTRA,
+        y_down_left - HEALTH_BAR_BACKGROUND_EXTRA,
+        x_end + HEALTH_BAR_BACKGROUND_EXTRA,
+        y_down_left - HEALTH_BAR_HEIGHT + HEALTH_BAR_BACKGROUND_EXTRA,
+        HEALTH_BAR_RX, HEALTH_BAR_RY, al_map_rgb(50, 0, 0)); // Vermelho escuro
+
+    // 2. Calcula a porcentagem de vida (clamp entre 0.0 e 1.0)
+    float health_pct = (float)current_health / (float)max_health;
+    if (health_pct < 0) health_pct = 0;
+    if (health_pct > 1) health_pct = 1;
+
+    // 3. Desenha a vida atual (parte cheia/vermelha viva)
+    // O comprimento deve ser proporcional 
+    al_draw_filled_rounded_rectangle(
+        x_begin,
+        y_down_left,
+        x_begin + (total_width * health_pct), // Largura variável
+        y_down_left - HEALTH_BAR_HEIGHT,
+        HEALTH_BAR_RX, HEALTH_BAR_RY, al_map_rgb(200, 0, 0)); // Vermelho vivo
+
+    // 4. Texto com os números (Ex: "80/100")
+    char text[20];
+    sprintf(text, "%d/%d", current_health, max_health);
+    float x_scale = 1.5, y_scale = 1.5;
+    DrawScaledText(al_create_builtin_font(), al_map_rgb(255, 255, 255), (x_begin + x_end) / 2.0 / x_scale,
+                   mid_y / y_scale, x_scale, y_scale, ALLEGRO_ALIGN_CENTRE, text);
 }
 
-void RenderCreature(const Renderer* renderer, int begin_x, int mid_y,
-                    int width) {
-  al_draw_filled_circle(begin_x + width / 2.0, mid_y, width,
-                        al_map_rgb(255, 255, 255));
-  float x_end = begin_x + width;
+void RenderCreature(const Renderer* renderer, const Creature* creature, int begin_x, int mid_y, int width) {
+    // 1. Desenha a criatura (Círculo)
+    // Dica visual: Se estiver morto, podemos mudar a cor ou não desenhar, mas RenderEnemies já trata isso.
+    al_draw_filled_circle(begin_x + width / 2.0, mid_y, width / 2.0, al_map_rgb(255, 255, 255));
+    
+    // 2. Desenha a Barra de Vida abaixo da criatura
+    float x_end = begin_x + width;
+    float health_bar_y = mid_y + (width/2.0) + 25; // Um pouco abaixo do círculo
+    
+    RenderHealthBar(begin_x, x_end, health_bar_y, creature->current_health, creature->max_health);
 
-  float health_bar_y = mid_y + width + 20;
-  RenderHealthBar(begin_x, x_end, health_bar_y, renderer->font);
-
-  // Suggestion: render enemy intents here.
+    // 3. Desenha o Escudo (se tiver) 
+    if (creature->shield > 0) {
+        // Um círculo azul pequeno ao lado da barra de vida
+        al_draw_filled_circle(x_end + 15, health_bar_y - 10, 15, al_map_rgb(0, 0, 200));
+        char shield_text[10];
+        sprintf(shield_text, "%d", creature->shield);
+        DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), x_end + 15, health_bar_y - 18, 1.5, 1.5, shield_text);
+    }
 }
-
 
 void RenderCard(const Renderer* renderer, const Card* card, int x_left, int y_top, int is_selected) {
     // Deslocamento vertical se a carta estiver selecionada
@@ -392,7 +418,49 @@ void RenderPlayerHand(Renderer* renderer) {
 }
 
 void RenderEnemies(Renderer* renderer) {
+    EnemyGroup* enemies = &renderer->combat.enemies;
 
+    // Posições fixas para até 2 inimigos na direita da tela 
+    int enemy_positions_x[2] = {1200, 1500}; 
+    int enemy_y = PLAYER_BEGIN_Y + PLAYER_RADIUS; // Mesma altura do jogador
+    int enemy_width = PLAYER_RADIUS; // Tamanho igual ao jogador por enquanto
+
+    for (int i = 0; i < enemies->count; i++) {
+        Enemy* e = &enemies->enemies[i];
+
+        // Só desenha se estiver vivo 
+        if (e->base.is_alive) {
+            
+            // 1. Desenha Seleção (Alvo)
+            // Se este for o inimigo alvo atual, desenha um indicador
+            if (i == renderer->combat.target_enemy_index) {
+                al_draw_circle(enemy_positions_x[i] + enemy_width/2.0, enemy_y, enemy_width/2.0 + 10, al_map_rgb(255, 0, 0), 3);
+            }
+
+            // 2. Desenha a Criatura e Vida
+            RenderCreature(renderer, &e->base, enemy_positions_x[i], enemy_y, enemy_width);
+
+            // 3. Desenha a Intenção (Próxima Ação) 
+            // Fica acima da cabeça do inimigo
+            int intent_y = enemy_y - (enemy_width/2.0) - 40;
+            int intent_x = enemy_positions_x[i] + enemy_width/2.0;
+            
+            EnemyAction* action = &e->ai_actions[e->current_action_index];
+            char intent_text[20];
+            ALLEGRO_COLOR intent_color;
+
+            if (action->type == ATTACK) {
+                sprintf(intent_text, "ATQ %d", action->effect_value);
+                intent_color = al_map_rgb(255, 50, 50); // Vermelho
+            } else {
+                sprintf(intent_text, "DEF %d", action->effect_value);
+                intent_color = al_map_rgb(50, 50, 255); // Azul
+            }
+            
+            // Desenha o texto da intenção (etou forcando a ser branco, por enquanto)
+            DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), intent_x, intent_y, 2.0, 2.0, intent_text);
+        }
+    }
 }
 
 void RenderEnergy(Renderer* renderer) {
@@ -403,8 +471,7 @@ void Render(Renderer* renderer) {
   al_set_target_bitmap(renderer->display_buffer);
   RenderBackground(renderer);
   RenderDeck(renderer, DRAW_DECK_X, DRAW_DECK_Y);
-  RenderCreature(renderer, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS,
-                 PLAYER_RADIUS);
+  RenderCreature(renderer, &renderer->combat.player.base, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS, PLAYER_RADIUS);
   RenderEnergy(renderer);
   RenderEnemies(renderer);
   RenderPlayerHand(renderer);

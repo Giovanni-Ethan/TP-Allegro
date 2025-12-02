@@ -539,13 +539,16 @@ _Bool PlayCard(Combat* combat) {
     player->current_energy -= card_to_play.energy_cost;
     
     // 6. MOVE PARA O DESCARTE
-    // Cartas especiais (como o "Compra 5") não vão para o descarte,
-    // pois elas foram consumidas/não têm efeito residual.
-    if (card_to_play.type != SPECIAL) {
+    // Cartas especiais (como o "Compra 5") não vão para o descarte, pois elas foram consumidas/não têm efeito residual.
+    if (card_to_play.type == SPECIAL) {
+        // Carta especial (como "Compra 5") é consumida e removida, mas não vai para o descarte 
+        RemoveCardFromHand(player, selected_card_index);
+    } else {
+    // Attack e Defense vão para o descarte (e são removidas da mão dentro da função)
         MoveCardToDiscard(combat, selected_card_index);
     }
-    // Nota: Se a carta for especial, ela é consumida sem ir para o descarte (simplificação comum).
 
+    
     // 7. Ajusta a seleção de carta para o novo índice (se ainda houver cartas)
     if (player->hand_count > 0) {
         // Se a carta jogada era a última, o índice precisa ir para o novo último
@@ -576,12 +579,7 @@ void MoveCardToDiscard(Combat* combat, int hand_index) {
 
     // 2. Reorganizar a mão (Preencher o "buraco")
     // Move todas as cartas após 'hand_index' uma posição para a esquerda
-    for (int i = hand_index; i < player->hand_count - 1; i++) {
-        player->hand[i] = player->hand[i + 1];
-    }
-
-    // 3. Diminuir o contador da mão
-    player->hand_count--;
+    RemoveCardFromHand(player, hand_index);
 }
 
 // Aplica o efeito da carta, baseando-se no tipo e no valor
@@ -628,6 +626,16 @@ void ApplyCardEffect(Combat* combat, const Card* card) {
             // Nota: Cartas especiais não têm custo de energia (já verificado em PlayCard)
             break;
     }
+}
+
+// Função auxiliar que APENAS remove a carta da mão e reorganiza o array
+void RemoveCardFromHand(Player* player, int hand_index) {
+    // Reorganizar a mão (Preencher o "buraco")
+    for (int i = hand_index; i < player->hand_count - 1; i++) {
+        player->hand[i] = player->hand[i + 1];
+    }
+    // Diminuir o contador da mão
+    player->hand_count--;
 }
 
 

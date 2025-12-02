@@ -138,4 +138,6 @@ void MoveCardToDiscard(Combat* combat, int hand_index);
 
 void ApplyCardEffect(Combat* combat, const Card* card);
 
+void RemoveCardFromHand(Player* player, int hand_index);
+
 #endif

@@ -126,4 +126,8 @@ void Render(Renderer* renderer);
 
 void ClearRenderer(Renderer* renderer);
 
+void MoveCardSelection(Combat* combat, int direction); // direction: +1 (Dir), -1 (Esq)
+
+void MoveTargetSelection(Combat* combat, int direction); // direction: +1 (Dir), -1 (Esq)
+
 #endif

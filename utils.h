@@ -17,4 +17,5 @@ void ShuffleCardGroup (CardGroup* group);
 
 int GetRandomInt(int min, int max);
 
+
 #endif

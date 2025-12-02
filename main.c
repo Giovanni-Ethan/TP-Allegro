@@ -62,7 +62,47 @@ int main() {
     if (done) {
       break;
     }
+
+
     // You want to put your combat logic here.
+
+// 1. Controle de Seleção de Cartas e Alvos
+if (renderer.combat.state == PLAYER_TURN) {
+    
+    // Mover seleção de carta para a esquerda
+    if (keyboard_keys[ALLEGRO_KEY_LEFT] & GAME_KEY_DOWN) {
+        // Se a seleção de alvo estiver ativa, move o alvo. Se não, move a carta.
+        MoveCardSelection(&renderer.combat, -1);
+    }
+    
+    // Mover seleção de carta para a direita
+    if (keyboard_keys[ALLEGRO_KEY_RIGHT] & GAME_KEY_DOWN) {
+        // Se a seleção de alvo estiver ativa, move o alvo. Se não, move a carta.
+        MoveCardSelection(&renderer.combat, 1);
+    }
+    
+    // Exemplo de como implementar a seleção de alvo (a ser refinado depois)
+    // Para simplificar, vamos mapear o CTRL para alternar entre alvos.
+    if (keyboard_keys[ALLEGRO_KEY_LCTRL] & GAME_KEY_DOWN) {
+        MoveTargetSelection(&renderer.combat, 1);
+    }
+    
+    // Ação: Jogar Carta (ENTER)
+    if (keyboard_keys[ALLEGRO_KEY_ENTER] & GAME_KEY_DOWN) {
+        // A lógica de "jogar carta" virá aqui no próximo passo
+    }
+    
+    // Ação: Encerrar Turno (ESCAPE)
+    if (keyboard_keys[ALLEGRO_KEY_ESCAPE] & GAME_KEY_DOWN) {
+        // A lógica de "encerrar turno" virá aqui no próximo passo
+    }
+
+
+}
+
+ClearKeyboardKeys(keyboard_keys);
+
+
     if (redraw) {
       Render(&renderer);
       redraw = 0;

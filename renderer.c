@@ -467,6 +467,45 @@ void RenderEnergy(Renderer* renderer) {
 
 }
 
+
+// Lógica de movimentação da seleção de cartas
+void MoveCardSelection(Combat* combat, int direction) {
+    Player* player = &combat->player;
+    int current_index = combat->card_selection_index;
+    
+    // Calcula o novo índice
+    int new_index = current_index + direction;
+    
+    // Garante que o índice não saia dos limites (0 até hand_count - 1)
+    if (new_index < 0) {
+        new_index = player->hand_count - 1; // Volta para o final
+    } else if (new_index >= player->hand_count) {
+        new_index = 0; // Vai para o início
+    }
+    
+    // Atualiza o índice
+    combat->card_selection_index = new_index;
+}
+
+// Lógica de movimentação da seleção de alvos (inimigos)
+void MoveTargetSelection(Combat* combat, int direction) {
+    EnemyGroup* enemies = &combat->enemies;
+    int current_target = combat->target_enemy_index;
+    
+    // Se não há inimigos vivos, não faz nada
+    if (enemies->count == 0) return;
+    
+    // Calcula o novo alvo (Apenas dois inimigos no máximo)
+    int new_target = (current_target + direction) % enemies->count;
+
+    // Garante que o índice não seja negativo
+    if (new_target < 0) {
+        new_target = enemies->count - 1;
+    }
+    
+    combat->target_enemy_index = new_target;
+}
+
 void Render(Renderer* renderer) {
   al_set_target_bitmap(renderer->display_buffer);
   RenderBackground(renderer);

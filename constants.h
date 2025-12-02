@@ -33,6 +33,7 @@
 #define CARD_WIDTH 280
 #define CARD_HEIGHT 420
 
+
 // You might want to use this.
 typedef enum {
   MOVE_LEFT = 0,

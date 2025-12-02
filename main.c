@@ -3,6 +3,7 @@
 #include <allegro5/allegro_primitives.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "constants.h"
 #include "renderer.h"
@@ -14,6 +15,8 @@ int main() {
   must_init(al_init_primitives_addon(), "primitives");
   must_init(al_install_keyboard(), "keyboard");
 
+  srand(time(NULL));
+
   ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0);
   must_init(timer, "timer");
 
@@ -22,50 +25,48 @@ int main() {
 
   al_register_event_source(queue, al_get_keyboard_event_source());
   al_register_event_source(queue, al_get_timer_event_source(timer));
+
   unsigned char keyboard_keys[ALLEGRO_KEY_MAX];
   ClearKeyboardKeys(keyboard_keys);
+
   ALLEGRO_EVENT event;
 
   Renderer renderer;
   FillRenderer(&renderer);
-  al_register_event_source(queue,
-                           al_get_display_event_source(renderer.display));
+  al_register_event_source(queue, al_get_display_event_source(renderer.display));
 
   al_start_timer(timer);
 
       static int transition_counter = 0;
-      const int TRANSITION_DELAY_FRAMES = 30; // Aproximadamente 0.5 segundo a 60 FPS
+      const int TRANSITION_DELAY_FRAMES = 30; //  0.5 segundo a 60 FPS
 
   while (1) {
     al_wait_for_event(queue, &event);
-
+    
     int done = 0, print_combat = 0, redraw = 0;
 
     switch (event.type) {
       case ALLEGRO_EVENT_TIMER:
         redraw = 1;
+
         if (keyboard_keys[ALLEGRO_KEY_Q]) {
           done = 1;
           break;
         }
-    switch (renderer.combat.state) {
-      case TRANSITION_TURN:
-        // O contador estático de fora do loop é incrementado
-        transition_counter++;
-        if (transition_counter >= TRANSITION_DELAY_FRAMES) {
-            StartPlayerTurn(&renderer.combat); // Chama a transição de volta ao jogador
-            transition_counter = 0; // Reseta o contador para o próximo ciclo
-        }
-        break;
-    default:
-        // Nos outros estados, o jogo continua normalmente.
-        break;
-}
-
-
+          
         for (int i = 0; i < ALLEGRO_KEY_MAX; i++) {
           keyboard_keys[i] &= ~GAME_KEY_SEEN;
         }
+
+        if (renderer.combat.state == TRANSITION_TURN) {
+          transition_counter++;
+                
+          if (transition_counter >= TRANSITION_DELAY_FRAMES) {
+            printf("Transição concluída! Iniciando turno do jogador...\n");
+              StartPlayerTurn(&renderer.combat); 
+              transition_counter = 0; // Reseta para a próxima vez
+          }
+         }        
         break;
 
       case ALLEGRO_EVENT_KEY_DOWN:
@@ -78,6 +79,8 @@ int main() {
         done = true;
         break;
     }
+
+
     if (done) {
       break;
     }
@@ -100,7 +103,6 @@ int main() {
         MoveCardSelection(&renderer.combat, 1);
     }
     
-    // Exemplo de como implementar a seleção de alvo (a ser refinado depois)
     // Para simplificar, vamos mapear o CTRL para alternar entre alvos.
     if (keyboard_keys[ALLEGRO_KEY_LCTRL] & GAME_KEY_DOWN) {
         MoveTargetSelection(&renderer.combat, 1);
@@ -113,6 +115,7 @@ int main() {
     
     // Ação: Encerrar Turno (ESC)
     if (keyboard_keys[ALLEGRO_KEY_ESCAPE] & GAME_KEY_DOWN) {
+        printf("Encerrando turno do jogador....\n");
         EndPlayerTurn(&renderer.combat);
     }
 
@@ -121,7 +124,7 @@ int main() {
 
   ClearKeyboardKeys(keyboard_keys);
 
-    if (redraw) {
+    if (redraw && al_is_event_queue_empty(queue)) {
       Render(&renderer);
       redraw = 0;
     }

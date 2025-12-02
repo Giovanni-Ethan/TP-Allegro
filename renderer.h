@@ -22,7 +22,7 @@ typedef struct { //aqui esta a estrutura de uma carta
 
 //constantes para a logica das cartas
 #define INITTIAL_DECK_SIZE 20
-#define MAX_CARDS 50
+#define MAX_CARDS 80
 #define MAX_HAND_SIZE 5
 #define MAX_ENEMIES 2
 
@@ -146,5 +146,7 @@ void EndPlayerTurn(Combat* combat);
 void StartEnemyTurn(Combat* combat);
 
 void StartPlayerTurn(Combat* combat);
+
+void ShuffleCardGroup(CardGroup* group);
 
 #endif

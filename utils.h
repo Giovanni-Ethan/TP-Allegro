@@ -13,7 +13,6 @@ void ClearKeyboardKeys(unsigned char* keyboard_keys);
 void ShuffleArray(int* array, int size);
 
 typedef struct CardGroup CardGroup;
-void ShuffleCardGroup (CardGroup* group);
 
 int GetRandomInt(int min, int max);
 

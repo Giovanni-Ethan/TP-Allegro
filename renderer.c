@@ -70,6 +70,23 @@ void InitializeDeck(Player* player) {
     player->deck[deck_index++] = GenerateRandomCard(SPECIAL, 0);
 }
 
+void ShuffleCardGroup(CardGroup* group) {
+    // Apenas embaralha se houver mais de uma carta
+    if (group->count > 1) {
+        // Itera de trás para frente no array 
+        for (int i = group->count - 1; i > 0; i--) {
+            // 1. Gera um índice aleatório 'j' entre 0 e i 
+            // (i + 1) é o tamanho do intervalo. O módulo garante que o resultado é [0, i].
+            int j = rand() % (i + 1); 
+
+            // 2. Realiza a troca dos elementos 
+            Card temp = group->cards[i];
+            group->cards[i] = group->cards[j];
+            group->cards[j] = temp;
+        }
+    }
+}
+
 void InitializePlayer(Player* player) { //configura a enegria e o deck de cartas do jogador
 
     // 1. Inicializa atributos básicos da crature
@@ -642,47 +659,46 @@ void EndPlayerTurn(Combat* combat) {
     Player* player = &combat->player;
     
     // 1. Descarte Final de Cartas
-    // Move todas as cartas remanescentes na mão para a pilha de descarte
     while (player->hand_count > 0) {
-        // Move a carta na posição 0 para o descarte até a mão esvaziar
         MoveCardToDiscard(combat, 0); 
     }
     
-    // 2. Limpeza de Escudo (Slay the Spire)
-    // Escudo é perdido entre turnos, a menos que a carta diga o contrário.
+    // 2. Limpeza de Escudo
     player->base.shield = 0;
     
     // 3. Reset de Energia
-    // Restaura a energia máxima para o próximo turno.
     player->current_energy = player->max_energy; 
     
-    // 4. Muda o Estado para o Inimigo (PRÓXIMO SUBPASSO)
-    StartEnemyTurn(combat);
-    combat->state = ENEMY_TURN;
+    // 4. Transição de Turno
+    printf("DEBUG: Chamando StartEnemyTurn.\n");
+    StartEnemyTurn(combat); 
     
-    // 5. Ajusta a seleção
-    combat->card_selection_index = 0;
+    printf("DEBUG: Fim do EndPlayerTurn. Estado atual: %d\n", combat->state);
 }
 
 void StartPlayerTurn(Combat* combat) {
     Player* player = &combat->player;
+    printf("DEBUG: Chamada StartPlayerTurn. Resetando energia.\n");
     
     // 1. Reset Energia
     player->current_energy = player->max_energy;
     
     // 2. Comprar Cartas (5 cartas)
+    printf("DEBUG: Chamando DrawCards(5).\n");
     DrawCards(player, MAX_HAND_SIZE);
 
     // 3. Mudar Estado
     combat->state = PLAYER_TURN;
     combat->card_selection_index = 0; // Reset seleção
     combat->target_enemy_index = 0; // Reset alvo
-    
+    printf("DEBUG: Turno do Jogador iniciado. Cartas na mão: %d\n", player->hand_count);
+
     // 4. Inimigos escolhem sua próxima ação (Intent)
     // Se a lógica de intenção do inimigo for complexa, ela seria chamada aqui.
 }
 
 void StartEnemyTurn(Combat* combat) {
+    printf("DEBUG: Início do Turno do Inimigo.\n");
     EnemyGroup* enemies = &combat->enemies;
     Player* player = &combat->player;
     
@@ -726,7 +742,8 @@ void StartEnemyTurn(Combat* combat) {
 
     combat->state = TRANSITION_TURN; // O jogo entra em modo de espera
     combat->card_selection_index = 0; // Reset seguro da seleção
-    StartPlayerTurn(combat);
+    printf("DEBUG: Fim do Turno do Inimigo. Entrando em TRANSITION_TURN.\n");
+    //StartPlayerTurn(combat);
 }
 
 void Render(Renderer* renderer) {

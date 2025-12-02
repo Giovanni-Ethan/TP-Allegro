@@ -32,8 +32,13 @@ int main() {
                            al_get_display_event_source(renderer.display));
 
   al_start_timer(timer);
+
+      static int transition_counter = 0;
+      const int TRANSITION_DELAY_FRAMES = 30; // Aproximadamente 0.5 segundo a 60 FPS
+
   while (1) {
     al_wait_for_event(queue, &event);
+
     int done = 0, print_combat = 0, redraw = 0;
 
     switch (event.type) {
@@ -43,6 +48,20 @@ int main() {
           done = 1;
           break;
         }
+    switch (renderer.combat.state) {
+      case TRANSITION_TURN:
+        // O contador estático de fora do loop é incrementado
+        transition_counter++;
+        if (transition_counter >= TRANSITION_DELAY_FRAMES) {
+            StartPlayerTurn(&renderer.combat); // Chama a transição de volta ao jogador
+            transition_counter = 0; // Reseta o contador para o próximo ciclo
+        }
+        break;
+    default:
+        // Nos outros estados, o jogo continua normalmente.
+        break;
+}
+
 
         for (int i = 0; i < ALLEGRO_KEY_MAX; i++) {
           keyboard_keys[i] &= ~GAME_KEY_SEEN;
@@ -66,8 +85,8 @@ int main() {
 
     // You want to put your combat logic here.
 
-// 1. Controle de Seleção de Cartas e Alvos
-if (renderer.combat.state == PLAYER_TURN) {
+    // 1. Controle de Seleção de Cartas e Alvos
+    if (renderer.combat.state == PLAYER_TURN) {
     
     // Mover seleção de carta para a esquerda
     if (keyboard_keys[ALLEGRO_KEY_LEFT] & GAME_KEY_DOWN) {
@@ -98,16 +117,17 @@ if (renderer.combat.state == PLAYER_TURN) {
     }
 
 
-}
+  }
 
-ClearKeyboardKeys(keyboard_keys);
-
+  ClearKeyboardKeys(keyboard_keys);
 
     if (redraw) {
       Render(&renderer);
       redraw = 0;
     }
   }
+
+
   al_destroy_timer(timer);
   al_destroy_event_queue(queue);
   ClearRenderer(&renderer);

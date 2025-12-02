@@ -166,7 +166,7 @@ void DrawCards(Player* player, int n) { //remove cartas da pilha de compras e mo
                 }
                 player->draw_pile.count = player->discard_pile.count;
                 player->discard_pile.count = 0; 
-                ShuffleCardGroup(&player->draw_pile); // Reembaralha!
+                ShuffleCardGroup(&player->draw_pile); // Reembaralha
             } else {
                 // Não há mais cartas em lugar nenhum. Para de comprar.
                 break; 
@@ -178,7 +178,7 @@ void DrawCards(Player* player, int n) { //remove cartas da pilha de compras e mo
             break;
         }
 
-        // 3. COMPRA: Move a carta do topo (último elemento)
+        // 3. COMPRA: Move a carta do topo 
         Card drawn_card = player->draw_pile.cards[player->draw_pile.count - 1];
         player->draw_pile.count--; // Reduz o tamanho da draw_pile
 
@@ -657,15 +657,77 @@ void EndPlayerTurn(Combat* combat) {
     player->current_energy = player->max_energy; 
     
     // 4. Muda o Estado para o Inimigo (PRÓXIMO SUBPASSO)
-    // Aqui, chamaríamos a função principal do AI do inimigo: StartEnemyTurn(combat);
-    // Por enquanto, apenas mudaremos o estado para ENEMIES_TURN
+    StartEnemyTurn(combat);
     combat->state = ENEMY_TURN;
     
     // 5. Ajusta a seleção
     combat->card_selection_index = 0;
 }
 
+void StartPlayerTurn(Combat* combat) {
+    Player* player = &combat->player;
+    
+    // 1. Reset Energia
+    player->current_energy = player->max_energy;
+    
+    // 2. Comprar Cartas (5 cartas)
+    DrawCards(player, MAX_HAND_SIZE);
 
+    // 3. Mudar Estado
+    combat->state = PLAYER_TURN;
+    combat->card_selection_index = 0; // Reset seleção
+    combat->target_enemy_index = 0; // Reset alvo
+    
+    // 4. Inimigos escolhem sua próxima ação (Intent)
+    // Se a lógica de intenção do inimigo for complexa, ela seria chamada aqui.
+}
+
+void StartEnemyTurn(Combat* combat) {
+    EnemyGroup* enemies = &combat->enemies;
+    Player* player = &combat->player;
+    
+    // 1. Inimigos agem
+    for (int i = 0; i < enemies->count; i++) {
+        Enemy* e = &enemies->enemies[i];
+        
+        // Só age se estiver vivo
+        if (e->base.is_alive) {
+            // Pega a ação que ele estava "planejando" (que está sendo renderizada)
+            EnemyAction action = e->ai_actions[e->current_action_index];
+            
+            if (action.type == ATTACK) {
+                // --- Lógica de Dano ao Jogador ---
+                int damage = action.effect_value;
+                
+                // Dano no escudo
+                if (player->base.shield >= damage) {
+                    player->base.shield -= damage;
+                } else {
+                    damage -= player->base.shield;
+                    player->base.shield = 0;
+                    // Dano na vida
+                    player->base.current_health -= damage;
+                    
+                    if (player->base.current_health <= 0) {
+                        player->base.current_health = 0;
+                        combat->state = GAME_OVER; // Fim do Jogo!
+                        return; // Sai da função
+                    }
+                }
+            } else if (action.type == DEFENSE) {
+                // Aplica escudo a si mesmo
+                e->base.shield += action.effect_value;
+            }
+            
+            // 2. Escolhe a próxima ação (cicla para a próxima intenção)
+            e->current_action_index = (e->current_action_index + 1) % e->ai_action_count;
+        }
+    }
+
+    combat->state = TRANSITION_TURN; // O jogo entra em modo de espera
+    combat->card_selection_index = 0; // Reset seguro da seleção
+    StartPlayerTurn(combat);
+}
 
 void Render(Renderer* renderer) {
   al_set_target_bitmap(renderer->display_buffer);

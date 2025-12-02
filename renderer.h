@@ -83,6 +83,7 @@ typedef enum { //estrutura para o estado do jogo
     SETUP,
     PLAYER_TURN,
     ENEMY_TURN,
+    TRANSITION_TURN,
     COMBAT_END,
     GAME_OVER,
     GAME_WON // Vitória após 10 combates 
@@ -141,5 +142,9 @@ void ApplyCardEffect(Combat* combat, const Card* card);
 void RemoveCardFromHand(Player* player, int hand_index);
 
 void EndPlayerTurn(Combat* combat);
+
+void StartEnemyTurn(Combat* combat);
+
+void StartPlayerTurn(Combat* combat);
 
 #endif

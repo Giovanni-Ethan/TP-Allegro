@@ -92,9 +92,9 @@ if (renderer.combat.state == PLAYER_TURN) {
         PlayCard(&renderer.combat); // Chama a lógica principal de jogar a carta
     }
     
-    // Ação: Encerrar Turno (ESCAPE)
+    // Ação: Encerrar Turno (ESC)
     if (keyboard_keys[ALLEGRO_KEY_ESCAPE] & GAME_KEY_DOWN) {
-        // A lógica de "encerrar turno" virá aqui no próximo passo
+        EndPlayerTurn(&renderer.combat);
     }
 
 

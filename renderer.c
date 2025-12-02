@@ -638,6 +638,33 @@ void RemoveCardFromHand(Player* player, int hand_index) {
     player->hand_count--;
 }
 
+void EndPlayerTurn(Combat* combat) {
+    Player* player = &combat->player;
+    
+    // 1. Descarte Final de Cartas
+    // Move todas as cartas remanescentes na mão para a pilha de descarte
+    while (player->hand_count > 0) {
+        // Move a carta na posição 0 para o descarte até a mão esvaziar
+        MoveCardToDiscard(combat, 0); 
+    }
+    
+    // 2. Limpeza de Escudo (Slay the Spire)
+    // Escudo é perdido entre turnos, a menos que a carta diga o contrário.
+    player->base.shield = 0;
+    
+    // 3. Reset de Energia
+    // Restaura a energia máxima para o próximo turno.
+    player->current_energy = player->max_energy; 
+    
+    // 4. Muda o Estado para o Inimigo (PRÓXIMO SUBPASSO)
+    // Aqui, chamaríamos a função principal do AI do inimigo: StartEnemyTurn(combat);
+    // Por enquanto, apenas mudaremos o estado para ENEMIES_TURN
+    combat->state = ENEMY_TURN;
+    
+    // 5. Ajusta a seleção
+    combat->card_selection_index = 0;
+}
+
 
 
 void Render(Renderer* renderer) {

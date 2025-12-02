@@ -140,4 +140,6 @@ void ApplyCardEffect(Combat* combat, const Card* card);
 
 void RemoveCardFromHand(Player* player, int hand_index);
 
+void EndPlayerTurn(Combat* combat);
+
 #endif

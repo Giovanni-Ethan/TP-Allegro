@@ -89,7 +89,7 @@ if (renderer.combat.state == PLAYER_TURN) {
     
     // Ação: Jogar Carta (ENTER)
     if (keyboard_keys[ALLEGRO_KEY_ENTER] & GAME_KEY_DOWN) {
-        // A lógica de "jogar carta" virá aqui no próximo passo
+        PlayCard(&renderer.combat); // Chama a lógica principal de jogar a carta
     }
     
     // Ação: Encerrar Turno (ESCAPE)

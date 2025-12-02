@@ -130,4 +130,12 @@ void MoveCardSelection(Combat* combat, int direction); // direction: +1 (Dir), -
 
 void MoveTargetSelection(Combat* combat, int direction); // direction: +1 (Dir), -1 (Esq)
 
+_Bool PlayCard(Combat* combat); // Retorna TRUE se a carta foi jogada com sucesso
+
+_Bool PlayCard(Combat* combat); 
+
+void MoveCardToDiscard(Combat* combat, int hand_index);
+
+void ApplyCardEffect(Combat* combat, const Card* card);
+
 #endif

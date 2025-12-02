@@ -506,6 +506,132 @@ void MoveTargetSelection(Combat* combat, int direction) {
     combat->target_enemy_index = new_target;
 }
 
+
+_Bool PlayCard(Combat* combat) {
+    Player* player = &combat->player;
+    int selected_card_index = combat->card_selection_index;
+    
+    // 1. Verificações
+    if (player->hand_count == 0 || selected_card_index >= player->hand_count) {
+        return 0; 
+    }
+    
+    Card card_to_play = player->hand[selected_card_index];
+    
+    // 2. Verifica Energia
+    if (card_to_play.energy_cost > player->current_energy) {
+        return 0; // Não tem energia
+    }
+    
+    // 3. Verifica Alvo (Se for ataque, precisa de um alvo vivo)
+    if (card_to_play.type == ATTACK) {
+        Enemy* target = &combat->enemies.enemies[combat->target_enemy_index];
+        if (!target->base.is_alive) {
+            // Não pode atacar um inimigo morto
+            return 0;
+        }
+    }
+    
+    // 4. APLICA O EFEITO
+    ApplyCardEffect(combat, &card_to_play); 
+    
+    // 5. Aplica o Custo de Energia
+    player->current_energy -= card_to_play.energy_cost;
+    
+    // 6. MOVE PARA O DESCARTE
+    // Cartas especiais (como o "Compra 5") não vão para o descarte,
+    // pois elas foram consumidas/não têm efeito residual.
+    if (card_to_play.type != SPECIAL) {
+        MoveCardToDiscard(combat, selected_card_index);
+    }
+    // Nota: Se a carta for especial, ela é consumida sem ir para o descarte (simplificação comum).
+
+    // 7. Ajusta a seleção de carta para o novo índice (se ainda houver cartas)
+    if (player->hand_count > 0) {
+        // Se a carta jogada era a última, o índice precisa ir para o novo último
+        if (selected_card_index >= player->hand_count) {
+            combat->card_selection_index = player->hand_count - 1;
+        }
+        // Se a carta jogada era a primeira, mantém o 0.
+    } else {
+        combat->card_selection_index = 0; // Mão vazia, índice pode ser 0 ou -1 (0 é mais seguro)
+    }
+
+    return 1;
+}
+
+// Move a carta na posição 'hand_index' da mão para a pilha de descarte
+void MoveCardToDiscard(Combat* combat, int hand_index) {
+    Player* player = &combat->player;
+    
+    // 1. Mover a carta selecionada para a pilha de descarte
+    Card card_to_move = player->hand[hand_index];
+    
+    // Adiciona a carta ao topo do descarte
+    if (player->discard_pile.count < MAX_CARDS) {
+        player->discard_pile.cards[player->discard_pile.count] = card_to_move;
+        player->discard_pile.count++;
+    }
+    // Nota: Se o descarte estiver cheio, a carta é simplesmente perdida (idealmente, MAX_CARDS é grande o suficiente).
+
+    // 2. Reorganizar a mão (Preencher o "buraco")
+    // Move todas as cartas após 'hand_index' uma posição para a esquerda
+    for (int i = hand_index; i < player->hand_count - 1; i++) {
+        player->hand[i] = player->hand[i + 1];
+    }
+
+    // 3. Diminuir o contador da mão
+    player->hand_count--;
+}
+
+// Aplica o efeito da carta, baseando-se no tipo e no valor
+void ApplyCardEffect(Combat* combat, const Card* card) {
+    Player* player = &combat->player;
+    EnemyGroup* enemies = &combat->enemies;
+    
+    // Obtém o alvo (que já foi selecionado pelo CTRL/mouse/setas)
+    int target_index = combat->target_enemy_index;
+    
+    switch (card->type) {
+        case ATTACK:
+            // 1. Verifica se o alvo é válido e está vivo
+            if (target_index >= 0 && target_index < enemies->count && enemies->enemies[target_index].base.is_alive) {
+                Enemy* target = &enemies->enemies[target_index];
+                int damage = card->effect_value;
+                
+                // Aplica dano primeiro no escudo
+                if (target->base.shield >= damage) {
+                    target->base.shield -= damage;
+                } else {
+                    damage -= target->base.shield;
+                    target->base.shield = 0;
+                    // Aplica o dano restante na vida
+                    target->base.current_health -= damage;
+                    
+                    // Verifica se o inimigo morreu
+                    if (target->base.current_health <= 0) {
+                        target->base.current_health = 0;
+                        target->base.is_alive = 0;
+                    }
+                }
+            }
+            break;
+            
+        case DEFENSE:
+            // Aplica escudo ao jogador
+            player->base.shield += card->effect_value;
+            break;
+            
+        case SPECIAL:
+            // Efeito especial: Compra 5 cartas (Função DrawCards)
+            DrawCards(player, 5); 
+            // Nota: Cartas especiais não têm custo de energia (já verificado em PlayCard)
+            break;
+    }
+}
+
+
+
 void Render(Renderer* renderer) {
   al_set_target_bitmap(renderer->display_buffer);
   RenderBackground(renderer);

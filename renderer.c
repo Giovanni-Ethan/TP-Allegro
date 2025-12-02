@@ -627,6 +627,7 @@ void ApplyCardEffect(Combat* combat, const Card* card) {
                     if (target->base.current_health <= 0) {
                         target->base.current_health = 0;
                         target->base.is_alive = 0;
+                        CheckCombatEnd(combat);
                     }
                 }
             }
@@ -726,8 +727,9 @@ void StartEnemyTurn(Combat* combat) {
                     
                     if (player->base.current_health <= 0) {
                         player->base.current_health = 0;
-                        combat->state = GAME_OVER; // Fim do Jogo!
-                        return; // Sai da função
+                        CheckCombatEnd(combat);
+                        // Se morreu, sai da função imediatamente para não iniciar a transição
+                    if (combat->state == GAME_OVER) return;
                     }
                 }
             } else if (action.type == DEFENSE) {
@@ -746,6 +748,29 @@ void StartEnemyTurn(Combat* combat) {
     //StartPlayerTurn(combat);
 }
 
+void CheckCombatEnd(Combat* combat) {
+    // 1. Verificação de Derrota (Game Over)
+    if (combat->player.base.current_health <= 0) {
+        combat->player.base.current_health = 0; // Evita vida negativa visual
+        combat->state = GAME_OVER;
+        printf("Combate Encerrado: DERROTA!\n");
+        return;
+    }
+
+    // 2. Verificação de Vitória
+    int enemies_alive = 0;
+    for (int i = 0; i < combat->enemies.count; i++) {
+        if (combat->enemies.enemies[i].base.is_alive) {
+            enemies_alive++;
+        }
+    }
+
+    if (enemies_alive == 0) {
+        combat->state = GAME_WON;
+        printf("Combate Encerrado: VITÓRIA!\n");
+    }
+}
+
 void Render(Renderer* renderer) {
   al_set_target_bitmap(renderer->display_buffer);
   RenderBackground(renderer);
@@ -759,6 +784,23 @@ void Render(Renderer* renderer) {
   al_draw_scaled_bitmap(renderer->display_buffer, 0, 0, DISPLAY_BUFFER_WIDTH,
                         DISPLAY_BUFFER_HEIGHT, 0, 0, DISPLAY_WIDTH,
                         DISPLAY_HEIGHT, 0);
+
+    if (renderer->combat.state == GAME_OVER) {
+    // Tela Escura 
+    al_draw_filled_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, al_map_rgba(0, 0, 0, 200));
+    // Texto Vermelho
+    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 0, 0), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 50, 4.0, 4.0, "GAME OVER");
+    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 + 50, 2.0, 2.0, "Pressione Q para Sair");
+}
+
+if (renderer->combat.state == GAME_WON) {
+    // Tela Verde/Dourada Semitransparente
+    al_draw_filled_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, al_map_rgba(50, 50, 0, 200));
+    // Texto Dourado
+    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 215, 0), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 50, 4.0, 4.0, "VITÓRIA!");
+    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 + 50, 2.0, 2.0, "Pressione Q para Sair");
+}
+    
 
   al_flip_display();
 }

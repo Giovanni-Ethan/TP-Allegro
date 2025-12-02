@@ -149,4 +149,6 @@ void StartPlayerTurn(Combat* combat);
 
 void ShuffleCardGroup(CardGroup* group);
 
+void CheckCombatEnd(Combat* combat);
+
 #endif

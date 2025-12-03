@@ -246,7 +246,6 @@ void DrawScaledText(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x, float y,
   al_use_transform(&transform);  // Use the transform for subsequent drawing
 
   al_draw_text(font, color, x, y, alignment, text);
-  // al_draw_text(font, color, x, y, alignment, text);
   al_identity_transform(&transform);
   al_use_transform(&transform);  // Use the transform for subsequent drawing
 }
@@ -592,11 +591,14 @@ void RenderDiscardPile(Renderer* renderer) {
     char discard_count_text[10];
     snprintf(discard_count_text, 10, "%d", renderer->combat.player.discard_pile.count);
 
+    // Calcula o ajuste vertical para centralizar o texto
+    float ajuste_font_height = al_get_font_ascent(renderer->font) / 2.0;
+
     al_draw_text(renderer->font, 
-                 al_map_rgb(255, 255, 255), 
-                 discard_x - 50,          // X: Afastado da figura
-                 discard_y - 10,          // Y: Perto do centro da figura
-                 ALLEGRO_ALIGN_RIGHT,     // Alinhamento à direita para 'encostar' no X
+                 al_map_rgb(0, 0, 0), 
+                 discard_x,     
+                 discard_y - ajuste_font_height,          
+                 ALLEGRO_ALIGN_RIGHT, 
                  discard_count_text);
     
     // 3. Rótulo
@@ -795,9 +797,6 @@ void EndPlayerTurn(Combat* combat) {
     }
     printf("DEBUG: Limpeza de mao concluida. Descarte atualizado.\n");
 
-    // 2. Limpeza de Escudo
-    player->base.shield = 0;
-    
     // 3. Reset de Energia
     player->current_energy = player->max_energy; 
     
@@ -811,6 +810,8 @@ void StartPlayerTurn(Combat* combat) {
     
     // 1. Reset Energia
     player->current_energy = player->max_energy;
+    //reseta o escudo
+    player->base.shield = 0;
     
     // 2. Comprar Cartas (5 cartas)
     DrawCards(player, MAX_HAND_SIZE);

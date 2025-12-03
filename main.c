@@ -14,6 +14,7 @@ int main() {
   must_init(al_init_image_addon(), "allegro");
   must_init(al_init_primitives_addon(), "primitives");
   must_init(al_install_keyboard(), "keyboard");
+  must_init(al_init_font_addon(), "font addon");
 
   srand(time(NULL));
 

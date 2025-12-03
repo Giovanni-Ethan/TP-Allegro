@@ -242,9 +242,28 @@ void DrawScaledText(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x, float y,
   al_use_transform(&transform);  // Use the transform for subsequent drawing
 }
 
-void DrawCenteredScaledText(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x,
-                            float y, float xscale, float yscale, char* text) {
-  DrawScaledText(font, color, x, y, xscale, yscale, ALLEGRO_ALIGN_CENTRE, text);
+void DrawCenteredScaledText(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x, float y, float scale_x, float scale_y, const char* text) {
+    if (!font) return; 
+
+    // 1. Cria e aplica a transformação de escala
+    ALLEGRO_TRANSFORM transform;
+    al_identity_transform(&transform);
+    al_scale_transform(&transform, scale_x, scale_y);
+    al_use_transform(&transform); // Aplica a transformação
+
+    // 2. Calcula as coordenadas DESESCALONADAS
+    // Quando a tela é escalonada, as coordenadas (x, y) precisam ser divididas
+    // pela escala para que o ponto final (x, y) na tela seja o desejado.
+    float original_x = x / scale_x;
+    float original_y = y / scale_y;
+
+    // 3. Desenha o texto nas coordenadas descalonadas
+    al_draw_text(font, color, original_x, original_y, ALLEGRO_ALIGN_CENTER, text);
+    
+    // 4. RESET DA TRANSFORMAÇÃO (CRÍTICO!)
+    // Sem isso, todos os desenhos subsequentes (cartas, inimigos) ficam escalonados
+    al_identity_transform(&transform);
+    al_use_transform(&transform);
 }
 
 void FillRenderer(Renderer* renderer) {
@@ -481,7 +500,95 @@ void RenderEnemies(Renderer* renderer) {
 }
 
 void RenderEnergy(Renderer* renderer) {
+    // Coordenadas: Canto Superior Esquerdo
+    int x = 80;
+    int y = 50;
 
+    // 1. Placeholder Gráfico (Gema/Círculo Amarelo)
+    al_draw_filled_circle(x, y, 25, al_map_rgb(255, 215, 0)); // Cor da Energia (Dourado)
+    al_draw_circle(x, y, 25, al_map_rgb(255, 255, 255), 2); // Borda
+
+    // 2. Desenha o texto de Energia (Ex: "3 / 3")
+    char energy_text[20];
+    snprintf(energy_text, 30, "%d / %d", 
+        renderer->combat.player.current_energy, 
+        renderer->combat.player.max_energy);
+
+    // Texto preto sobre a gema para melhor contraste
+    al_draw_text(renderer->font, 
+                 al_map_rgb(0, 0, 0), 
+                 x, 
+                 y - 10, // Centraliza verticalmente
+                 ALLEGRO_ALIGN_CENTER, 
+                 energy_text);
+
+    // Rótulo opcional
+    al_draw_text(renderer->font, 
+                 al_map_rgb(255, 255, 255), 
+                 x, 
+                 y + 35, 
+                 ALLEGRO_ALIGN_CENTER, 
+                 "ENERGIA");
+}
+
+void RenderDrawPile(Renderer* renderer) {
+    int draw_x = 100;
+    int draw_y = DISPLAY_HEIGHT - 100;
+    
+    // 1. Figura da Pilha de Compra (Placeholder: Cartas Azuis)
+    // A pilha (efeito de profundidade)
+    al_draw_filled_rectangle(draw_x - 30, draw_y - 45, draw_x + 30, draw_y + 45, al_map_rgb(50, 50, 150));
+    // Destaque de topo
+    al_draw_filled_rectangle(draw_x - 25, draw_y - 40, draw_x + 25, draw_y + 40, al_map_rgb(100, 100, 255));
+    
+    // 2. Quantidade de Cartas
+    char draw_count_text[10];
+    snprintf(draw_count_text, 10, "%d", renderer->combat.player.draw_pile.count);
+
+    al_draw_text(renderer->font, 
+                 al_map_rgb(255, 255, 255), 
+                 draw_x + 50,           // X: Afastado da figura
+                 draw_y - 10,           // Y: Perto do centro da figura
+                 ALLEGRO_ALIGN_LEFT, 
+                 draw_count_text);
+    
+    // 3. Rótulo
+    al_draw_text(renderer->font, 
+                 al_map_rgb(255, 255, 255), 
+                 draw_x,
+                 draw_y + 55,
+                 ALLEGRO_ALIGN_CENTER, 
+                 "COMPRA");
+}
+
+void RenderDiscardPile(Renderer* renderer) {
+    int discard_x = DISPLAY_WIDTH - 100;
+    int discard_y = DISPLAY_HEIGHT - 100;
+    
+    // 1. Figura da Pilha de Descarte (Placeholder: Cartas Vermelhas)
+    // A pilha (efeito de profundidade)
+    al_draw_filled_rectangle(discard_x - 30, discard_y - 45, discard_x + 30, discard_y + 45, al_map_rgb(150, 50, 50));
+    // Destaque de topo
+    al_draw_filled_rectangle(discard_x - 25, discard_y - 40, discard_x + 25, discard_y + 40, al_map_rgb(255, 100, 100));
+
+    // 2. Quantidade de Cartas
+    char discard_count_text[10];
+    snprintf(discard_count_text, 10, "%d", renderer->combat.player.discard_pile.count);
+
+    al_draw_text(renderer->font, 
+                 al_map_rgb(255, 255, 255), 
+                 discard_x - 50,          // X: Afastado da figura
+                 discard_y - 10,          // Y: Perto do centro da figura
+                 ALLEGRO_ALIGN_RIGHT,     // Alinhamento à direita para 'encostar' no X
+                 discard_count_text);
+    
+    // 3. Rótulo
+    al_draw_text(renderer->font, 
+                 al_map_rgb(255, 255, 255), 
+                 discard_x,
+                 discard_y + 55,
+                 ALLEGRO_ALIGN_CENTER, 
+                 "DESCARTE");
 }
 
 
@@ -692,14 +799,14 @@ void StartPlayerTurn(Combat* combat) {
     combat->state = PLAYER_TURN;
     combat->card_selection_index = 0; // Reset seleção
     combat->target_enemy_index = 0; // Reset alvo
-    printf("DEBUG: Turno do Jogador iniciado. Cartas na mão: %d\n", player->hand_count);
+    printf("DEBUG: Turno do Jogador iniciado. Cartas na mao: %d\n", player->hand_count);
 
     // 4. Inimigos escolhem sua próxima ação (Intent)
     // Se a lógica de intenção do inimigo for complexa, ela seria chamada aqui.
 }
 
 void StartEnemyTurn(Combat* combat) {
-    printf("DEBUG: Início do Turno do Inimigo.\n");
+    printf("DEBUG: Inicio do Turno do Inimigo.\n");
     EnemyGroup* enemies = &combat->enemies;
     Player* player = &combat->player;
     
@@ -745,7 +852,6 @@ void StartEnemyTurn(Combat* combat) {
     combat->state = TRANSITION_TURN; // O jogo entra em modo de espera
     combat->card_selection_index = 0; // Reset seguro da seleção
     printf("DEBUG: Fim do Turno do Inimigo. Entrando em TRANSITION_TURN.\n");
-    //StartPlayerTurn(combat);
 }
 
 void CheckCombatEnd(Combat* combat) {
@@ -767,7 +873,7 @@ void CheckCombatEnd(Combat* combat) {
 
     if (enemies_alive == 0) {
         combat->state = GAME_WON;
-        printf("Combate Encerrado: VITÓRIA!\n");
+        printf("Combate Encerrado: VITORIA!\n");
     }
 }
 
@@ -777,6 +883,7 @@ void Render(Renderer* renderer) {
   RenderDeck(renderer, DRAW_DECK_X, DRAW_DECK_Y);
   RenderCreature(renderer, &renderer->combat.player.base, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS, PLAYER_RADIUS);
   RenderEnergy(renderer);
+  RenderDiscardPile(renderer);
   RenderEnemies(renderer);
   RenderPlayerHand(renderer);
   al_set_target_backbuffer(renderer->display);
@@ -785,8 +892,8 @@ void Render(Renderer* renderer) {
                         DISPLAY_BUFFER_HEIGHT, 0, 0, DISPLAY_WIDTH,
                         DISPLAY_HEIGHT, 0);
 
-    if (renderer->combat.state == GAME_OVER) {
-    // Tela Escura 
+if (renderer->combat.state == GAME_OVER) {
+    // Tela Escura Semitransparente
     al_draw_filled_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, al_map_rgba(0, 0, 0, 200));
     // Texto Vermelho
     DrawCenteredScaledText(renderer->font, al_map_rgb(255, 0, 0), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 50, 4.0, 4.0, "GAME OVER");
@@ -794,15 +901,15 @@ void Render(Renderer* renderer) {
 }
 
 if (renderer->combat.state == GAME_WON) {
-    // Tela Verde/Dourada Semitransparente
+    // Tela Verde/Dourada transparente
     al_draw_filled_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, al_map_rgba(50, 50, 0, 200));
     // Texto Dourado
     DrawCenteredScaledText(renderer->font, al_map_rgb(255, 215, 0), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 50, 4.0, 4.0, "VITÓRIA!");
     DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 + 50, 2.0, 2.0, "Pressione Q para Sair");
-}
-    
 
-  al_flip_display();
+}
+
+al_flip_display();
 }
 
 void ClearRenderer(Renderer* renderer) {

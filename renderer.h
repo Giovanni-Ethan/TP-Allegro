@@ -151,4 +151,10 @@ void ShuffleCardGroup(CardGroup* group);
 
 void CheckCombatEnd(Combat* combat);
 
+void RenderEnergy(Renderer* renderer);
+
+void RenderDrawPile(Renderer* renderer);
+
+void RenderDiscardPile(Renderer* renderer);
+
 #endif

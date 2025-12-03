@@ -37,6 +37,10 @@ typedef struct { //estrutura de uma criatura (vale tanto para jogadores quanto p
   int current_health;
   int shield;
   _Bool is_alive; //essa funcao bool serve pra saber se a criatura esta viva (vida > 0);
+  int total_frames;          // O total de quadros 
+  int current_frame;         // O quadro atual a ser desenhado (0 a 5)
+  int frame_delay;           // Contador para controlar a velocidade da animação
+  int frame_delay_max;       // O valor que o delay deve atingir antes de mudar o frame 
 } Creature;
 
 typedef struct { //estrutura do jogador 

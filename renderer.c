@@ -765,12 +765,14 @@ void RemoveCardFromHand(Player* player, int hand_index) {
 
 void EndPlayerTurn(Combat* combat) {
     Player* player = &combat->player;
-    
+    printf("DEBUG: Descartando cartas restantes. Mao inicial: %d\n", player->hand_count);
+
     // 1. Descarte Final de Cartas
     while (player->hand_count > 0) {
         MoveCardToDiscard(combat, 0); 
     }
-    
+    printf("DEBUG: Limpeza de mao concluida. Descarte atualizado.\n");
+
     // 2. Limpeza de Escudo
     player->base.shield = 0;
     
@@ -778,35 +780,29 @@ void EndPlayerTurn(Combat* combat) {
     player->current_energy = player->max_energy; 
     
     // 4. Transição de Turno
-    printf("DEBUG: Chamando StartEnemyTurn.\n");
     StartEnemyTurn(combat); 
     
-    printf("DEBUG: Fim do EndPlayerTurn. Estado atual: %d\n", combat->state);
 }
 
 void StartPlayerTurn(Combat* combat) {
     Player* player = &combat->player;
-    printf("DEBUG: Chamada StartPlayerTurn. Resetando energia.\n");
     
     // 1. Reset Energia
     player->current_energy = player->max_energy;
     
     // 2. Comprar Cartas (5 cartas)
-    printf("DEBUG: Chamando DrawCards(5).\n");
     DrawCards(player, MAX_HAND_SIZE);
 
     // 3. Mudar Estado
     combat->state = PLAYER_TURN;
     combat->card_selection_index = 0; // Reset seleção
     combat->target_enemy_index = 0; // Reset alvo
-    printf("DEBUG: Turno do Jogador iniciado. Cartas na mao: %d\n", player->hand_count);
 
     // 4. Inimigos escolhem sua próxima ação (Intent)
     // Se a lógica de intenção do inimigo for complexa, ela seria chamada aqui.
 }
 
 void StartEnemyTurn(Combat* combat) {
-    printf("DEBUG: Inicio do Turno do Inimigo.\n");
     EnemyGroup* enemies = &combat->enemies;
     Player* player = &combat->player;
     
@@ -850,8 +846,7 @@ void StartEnemyTurn(Combat* combat) {
     }
 
     combat->state = TRANSITION_TURN; // O jogo entra em modo de espera
-    combat->card_selection_index = 0; // Reset seguro da seleção
-    printf("DEBUG: Fim do Turno do Inimigo. Entrando em TRANSITION_TURN.\n");
+    combat->card_selection_index = 0; // Reset seguro da seleção);
 }
 
 void CheckCombatEnd(Combat* combat) {

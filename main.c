@@ -63,7 +63,6 @@ int main() {
           transition_counter++;
                 
           if (transition_counter >= TRANSITION_DELAY_FRAMES) {
-            printf("Transição concluída! Iniciando turno do jogador...\n");
               StartPlayerTurn(&renderer.combat); 
               transition_counter = 0; // Reseta para a próxima vez
           }
@@ -116,7 +115,6 @@ int main() {
     
     // Ação: Encerrar Turno (ESC)
     if (keyboard_keys[ALLEGRO_KEY_ESCAPE] & GAME_KEY_DOWN) {
-        printf("Encerrando turno do jogador....\n");
         EndPlayerTurn(&renderer.combat);
     }
 

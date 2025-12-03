@@ -118,8 +118,45 @@ int main() {
         EndPlayerTurn(&renderer.combat);
     }
 
+    //REDUZIR A VIDA DOS INIMIGOS A 0
+    if (keyboard_keys[ALLEGRO_KEY_SPACE] & GAME_KEY_DOWN) {
+      for (int i = 0; i < renderer.combat.enemies.count; i++) {
+        renderer.combat.enemies.enemies[i].base.current_health = 0;
+        renderer.combat.enemies.enemies[i].base.is_alive = 0;
+      }
+    CheckCombatEnd(&renderer.combat);
+    }
 
-  }
+    if (keyboard_keys[ALLEGRO_KEY_X] & GAME_KEY_DOWN) {
+      renderer.combat.player.base.current_health = 1;
+      CheckCombatEnd(&renderer.combat);
+    }
+
+    // 2. LÓGICA DE FIM DE JOGO
+    } else if (renderer.combat.state == GAME_OVER) {
+      // Tela de Game Over. Espera ENTER para reiniciar.
+      if (keyboard_keys[ALLEGRO_KEY_ENTER] & GAME_KEY_DOWN) {
+      // Reinicia o jogo (vida cheia, volta ao Combate 1)
+        InitializePlayer(&renderer.combat.player);
+        renderer.combat.current_combat_number = 1;
+        InitializeCombat(&renderer.combat);
+      } 
+
+    // Permite sair do jogo (Q)
+    if (keyboard_keys[ALLEGRO_KEY_Q] & GAME_KEY_DOWN) {
+      done = 1;
+      break;
+    }
+
+    } else if (renderer.combat.state == GAME_WON) {
+    // Tela de Jogo Vencido (Todos os mistérios da torre são revelados!) 
+    // Permite sair do jogo (Q)
+    if (keyboard_keys[ALLEGRO_KEY_Q] & GAME_KEY_DOWN) {
+    done = 1;
+    break;
+    }
+ }
+
 
   ClearKeyboardKeys(keyboard_keys);
 

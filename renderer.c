@@ -173,56 +173,65 @@ void InitializeEnemies(EnemyGroup* group) { //essa estrutura vai gerar dois inim
 
 void DrawCards(Player* player, int n) { //remove cartas da pilha de compras e move para a mao do joagdor, para gerenciar o proximo embaralhamento do descarte
 
-    for (int i = 0; i < n; i++) {
-        // 1. VERIFICA E REEMBARALHA: Se draw_pile está vazia, usa discard_pile
-        if (player->draw_pile.count == 0) {
-            if (player->discard_pile.count > 0) {
-                // Move o descarte para a draw_pile
-                for (int k = 0; k < player->discard_pile.count; k++) {
-                    player->draw_pile.cards[k] = player->discard_pile.cards[k];
-                }
-                player->draw_pile.count = player->discard_pile.count;
-                player->discard_pile.count = 0; 
-                ShuffleCardGroup(&player->draw_pile); // Reembaralha
-            } else {
-                // Não há mais cartas em lugar nenhum. Para de comprar.
-                break; 
-            }
-        }
-
-        // 2. VERIFICA MÃO: Se a mão está cheia, para
-        if (player->hand_count >= MAX_HAND_SIZE) {
+for (int i = 0; i < n; i++) {
+        // Se a mão estiver cheia, para de comprar
+        if (player->hand_count >= MAX_HAND_SIZE) { 
             break;
         }
 
-        // 3. COMPRA: Move a carta do topo 
-        Card drawn_card = player->draw_pile.cards[player->draw_pile.count - 1];
-        player->draw_pile.count--; // Reduz o tamanho da draw_pile
+        // Se a pilha de compras estiver vazia, reembaralha o descarte
+        if (player->draw_pile.count == 0) {
+            // A regra do Slay the Spire é: Embaralha descarte E forma nova pilha de compras
+            // Mova todas as cartas do descarte para a pilha de compras
+            while (player->discard_pile.count > 0) {
+                player->draw_pile.cards[player->draw_pile.count++] = 
+                    player->discard_pile.cards[--player->discard_pile.count];
+            }
+            ShuffleCardGroup(&player->draw_pile);
+        }
+        
+        // Se após tentar reembaralhar, ainda não houver cartas (o que só 
+        // acontece se o deck inteiro estiver vazio), interrompe.
+        if (player->draw_pile.count == 0) {
+            break;
+        }
 
-        player->hand[player->hand_count] = drawn_card;
-        player->hand_count++;
+        // Compra a carta (Move da draw_pile para a mão)
+        player->hand[player->hand_count++] = 
+            player->draw_pile.cards[--player->draw_pile.count];
     }
 }
 
 
 void InitializeCombat(Combat* combat) {
-    // 1. Inicializa o Jogador
-    InitializePlayer(&combat->player);
+    // A vida do jogador NÃO é resetada aqui. A chamada para InitializePlayer deve ocorrer apenas UMA VEZ em FillRenderer, ou após um GAME OVER.
 
-    // 2. Inicializa os Inimigos
+    // 1. Inicializa os Inimigos
     InitializeEnemies(&combat->enemies);
 
-    // 3. Configura o estado inicial do combate
+    // 2. Prepara o Baralho para o NOVO Combate
+    // Limpa a mão e a pilha de descarte (as cartas não se perdem, apenas voltam para a pilha de compras na próxima vez que for construída).
+    combat->player.hand_count = 0;
+    combat->player.discard_pile.count = 0;
+    
+    // Constrói a draw_pile com o deck inicial embaralhado.
+    combat->player.draw_pile.count = 0;
+    for (int i = 0; i < INITTIAL_DECK_SIZE; i++) {
+        combat->player.draw_pile.cards[combat->player.draw_pile.count++] = combat->player.deck[i];
+    }
+    ShuffleCardGroup(&combat->player.draw_pile); // Implementar ShuffleCardGroup!
+
+    // 3. Configura o estado inicial do combate e o índice
     combat->state = PLAYER_TURN;
-    combat->current_combat_number = 1; // Começamos no primeiro combate
+    // O current_combat_number é definido/incrementado na FillRenderer (início)
+    // ou em CheckCombatEnd (passagem de fase).
+    
     combat->card_selection_index = 0; 
     combat->target_enemy_index = 0; 
 
     // 4. Inicia o turno do jogador
-    combat->player.current_energy = combat->player.max_energy;
-    
-    // 5. Compra as 5 cartas iniciais
-    DrawCards(&combat->player, 5);
+    StartPlayerTurn(combat); // Esta função deve definir energia = 3 e chamar DrawCards(5)
+    combat->did_combat_end = false;
 }
 
 
@@ -267,21 +276,29 @@ void DrawCenteredScaledText(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x, fl
 }
 
 void FillRenderer(Renderer* renderer) {
-  al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
-  al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
-  al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
+    al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
+    al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR);
 
-  renderer->display = al_create_display(DISPLAY_WIDTH, DISPLAY_HEIGHT);
-  must_init(renderer->display, "display");
+    renderer->display = al_create_display(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    must_init(renderer->display, "display");
 
-  renderer->display_buffer =
-      al_create_bitmap(DISPLAY_BUFFER_WIDTH, DISPLAY_BUFFER_HEIGHT);
-  must_init(renderer->display_buffer, "display buffer");
+    renderer->display_buffer =
+        al_create_bitmap(DISPLAY_BUFFER_WIDTH, DISPLAY_BUFFER_HEIGHT);
+    must_init(renderer->display_buffer, "display buffer");
 
-  renderer->font = al_create_builtin_font();
-  must_init(renderer->font, "font");
+    renderer->font = al_create_builtin_font();
+    must_init(renderer->font, "font");
 
-  InitializeCombat (&renderer->combat);
+    // 1. Inicialização ÚNICA do Jogador (Vida, Deck Inicial)
+    InitializePlayer(&renderer->combat.player); 
+
+    // 2. Configura o estado inicial do Jogo
+    renderer->combat.current_combat_number = 1; // Começa no Combate 1
+    renderer->combat.state = SETUP; // Estado inicial, ou PLAYER_TURN
+
+    // 3. Inicia o PRIMEIRO Combate
+    InitializeCombat (&renderer->combat);
 }
 
 void RenderBackground(Renderer* renderer) {
@@ -658,7 +675,12 @@ _Bool PlayCard(Combat* combat) {
     
     // 4. APLICA O EFEITO
     ApplyCardEffect(combat, &card_to_play); 
-    
+    CheckCombatEnd(combat);
+    if (combat->did_combat_end) {
+
+        return 1; 
+    }
+
     // 5. Aplica o Custo de Energia
     player->current_energy -= card_to_play.energy_cost;
     
@@ -857,24 +879,62 @@ void CheckCombatEnd(Combat* combat) {
         printf("Combate Encerrado: DERROTA!\n");
         return;
     }
-
-    // 2. Verificação de Vitória
-    int enemies_alive = 0;
+    
+    // 2. Verificação de Vitória de Combate
+    _Bool all_enemies_dead = true;
     for (int i = 0; i < combat->enemies.count; i++) {
         if (combat->enemies.enemies[i].base.is_alive) {
-            enemies_alive++;
+            all_enemies_dead = false;
+            break;
         }
     }
 
-    if (enemies_alive == 0) {
-        combat->state = GAME_WON;
-        printf("Combate Encerrado: VITORIA!\n");
+    if (all_enemies_dead) {
+        printf("Combate %d Encerrado: VITÓRIA!\n", combat->current_combat_number);
+        
+        // 3. Se 10 combates vencidos, JOGO VENCIDO
+        if (combat->current_combat_number >= 10) {
+            combat->state = GAME_WON;
+            combat->did_combat_end = true;
+        }
+            if (combat->current_combat_number >= 10) {
+            // Vitória final
+            combat->state = GAME_WON;
+            } 
+
+            else {
+            // 4. Se não, avança para o próximo combate (Fase)
+            combat->current_combat_number++; 
+            printf("Iniciando Combate %d...\n", combat->current_combat_number);
+            // Inicia o próximo combate (Preserva a vida, gera novos inimigos, novo deck)
+            InitializeCombat(combat);
+        }
     }
+}
+
+// Posição de onde o número do combate aparece
+#define COMBAT_NUMBER_X (DISPLAY_BUFFER_WIDTH / 2.0)
+#define COMBAT_NUMBER_Y 50.0
+
+void RenderCombatNumber(Renderer* renderer) {
+    char combat_text[32];
+    
+    // Formata a string para "Combate X/10"
+    snprintf(combat_text, sizeof(combat_text), "Combate %d/10", renderer->combat.current_combat_number);
+
+    // Cor do texto (branco)
+    ALLEGRO_COLOR text_color = al_map_rgb(255, 255, 255);
+
+    // Desenha o texto no centro superior da tela
+    al_draw_text(renderer->font, text_color, COMBAT_NUMBER_X, COMBAT_NUMBER_Y,
+                 ALLEGRO_ALIGN_CENTER, combat_text);
 }
 
 void Render(Renderer* renderer) {
   al_set_target_bitmap(renderer->display_buffer);
   RenderBackground(renderer);
+
+  if (renderer->combat.state != GAME_OVER && renderer->combat.state != GAME_WON) {
   RenderDeck(renderer, DRAW_DECK_X, DRAW_DECK_Y);
   RenderCreature(renderer, &renderer->combat.player.base, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS, PLAYER_RADIUS);
   RenderEnergy(renderer);
@@ -883,26 +943,19 @@ void Render(Renderer* renderer) {
   RenderPlayerHand(renderer);
   al_set_target_backbuffer(renderer->display);
 
-  al_draw_scaled_bitmap(renderer->display_buffer, 0, 0, DISPLAY_BUFFER_WIDTH,
-                        DISPLAY_BUFFER_HEIGHT, 0, 0, DISPLAY_WIDTH,
-                        DISPLAY_HEIGHT, 0);
+  al_draw_scaled_bitmap(renderer->display_buffer, 0, 0, DISPLAY_BUFFER_WIDTH, DISPLAY_BUFFER_HEIGHT, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, 0);
 
-if (renderer->combat.state == GAME_OVER) {
-    // Tela Escura Semitransparente
-    al_draw_filled_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, al_map_rgba(0, 0, 0, 200));
-    // Texto Vermelho
-    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 0, 0), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 50, 4.0, 4.0, "GAME OVER");
-    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 + 50, 2.0, 2.0, "Pressione Q para Sair");
-}
+     RenderCombatNumber(renderer); 
+        
+    } else if (renderer->combat.state == GAME_OVER) {
+        // Renderiza a tela de GAME OVER
+        al_draw_text(renderer->font, al_map_rgb(255, 0, 0), DISPLAY_BUFFER_WIDTH / 2, DISPLAY_BUFFER_HEIGHT / 2, ALLEGRO_ALIGN_CENTER, "GAME OVER! Pressione ENTER para recomeçar.");
+        
+    } else if (renderer->combat.state == GAME_WON) {
+        // Renderiza a tela de VITÓRIA
+        al_draw_text(renderer->font, al_map_rgb(0, 255, 0), DISPLAY_BUFFER_WIDTH / 2, DISPLAY_BUFFER_HEIGHT / 2,  ALLEGRO_ALIGN_CENTER, "VITÓRIA! Os mistérios da torre foram revelados!");
+    }
 
-if (renderer->combat.state == GAME_WON) {
-    // Tela Verde/Dourada transparente
-    al_draw_filled_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, al_map_rgba(50, 50, 0, 200));
-    // Texto Dourado
-    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 215, 0), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 - 50, 4.0, 4.0, "VITÓRIA!");
-    DrawCenteredScaledText(renderer->font, al_map_rgb(255, 255, 255), DISPLAY_WIDTH/2, DISPLAY_HEIGHT/2 + 50, 2.0, 2.0, "Pressione Q para Sair");
-
-}
 
 al_flip_display();
 }

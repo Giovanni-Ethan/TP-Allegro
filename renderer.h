@@ -102,6 +102,7 @@ typedef enum { //estrutura para o estado do jogo
     int current_combat_number; // Para contar os 10 combates 
     int card_selection_index; // Índice da carta selecionada na mão 
     int target_enemy_index; // Índice do inimigo alvo selecionado 
+    _Bool did_combat_end;
 } ;
 
 typedef struct  {
@@ -160,5 +161,7 @@ void RenderEnergy(Renderer* renderer);
 void RenderDrawPile(Renderer* renderer);
 
 void RenderDiscardPile(Renderer* renderer);
+
+void RenderCombatNumber(Renderer* renderer);
 
 #endif

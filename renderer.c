@@ -548,34 +548,51 @@ void RenderEnergy(Renderer* renderer) {
 }
 
 void RenderDrawPile(Renderer* renderer) {
-    int draw_x = 100;
-    int draw_y = DISPLAY_HEIGHT - 100;
+    Combat* combat = &renderer->combat;
+    Player* player = &combat->player;
     
-    // 1. Figura da Pilha de Compra (Placeholder: Cartas Azuis)
-    // A pilha (efeito de profundidade)
-    al_draw_filled_rectangle(draw_x - 30, draw_y - 45, draw_x + 30, draw_y + 45, al_map_rgb(50, 50, 150));
-    // Destaque de topo
-    al_draw_filled_rectangle(draw_x - 25, draw_y - 40, draw_x + 25, draw_y + 40, al_map_rgb(100, 100, 255));
+    // Coordenadas centrais para o texto
+    float center_x = DRAW_DECK_X + DECK_WIDTH / 2.0; 
+    float center_y = DRAW_DECK_Y + DECK_HEIGHT / 2.0; 
     
-    // 2. Quantidade de Cartas
-    char draw_count_text[10];
-    snprintf(draw_count_text, 10, "%d", renderer->combat.player.draw_pile.count);
+    // Cor do texto (Preto, para contraste com o fundo branco)
+    ALLEGRO_COLOR text_color = al_map_rgb(0, 0, 0);
+
+    // Se o deck estiver vazio, não desenha nada (ou desenha um placeholder vazio)
+    if (player->draw_pile.count == 0) {
+        return;
+    }
+
+    // 1. Desenha a Figura da Pilha de Compras (FUNDO)
+    
+    // Placeholder (Quadrado Branco/Azul Claro)
+    al_draw_filled_rectangle(DRAW_DECK_X, DRAW_DECK_Y, 
+                             DRAW_DECK_X + DECK_WIDTH, DRAW_DECK_Y + DECK_HEIGHT, 
+                             al_map_rgb(200, 200, 255)); // Ex: Azul claro
+
+    // 2. Desenha o Contador (TEXTO)
+    
+    char count_text[10];
+    snprintf(count_text, sizeof(count_text), "%d", player->draw_pile.count);
+
+    // Ajuste vertical para centralizar o texto 
+    float font_height_adjustment = al_get_font_ascent(renderer->font) / 2.0;
 
     al_draw_text(renderer->font, 
-                 al_map_rgb(255, 255, 255), 
-                 draw_x + 50,           // X: Afastado da figura
-                 draw_y - 10,           // Y: Perto do centro da figura
-                 ALLEGRO_ALIGN_LEFT, 
-                 draw_count_text);
+                 text_color, 
+                 center_x, // X: Centro da figura
+                 center_y - font_height_adjustment, // Y: Centro ajustado
+                 ALLEGRO_ALIGN_CENTER, 
+                 count_text);
     
-    // 3. Rótulo
     al_draw_text(renderer->font, 
-                 al_map_rgb(255, 255, 255), 
-                 draw_x,
-                 draw_y + 55,
+                 al_map_rgb(255, 255, 255), // Texto branco
+                 center_x,
+                 DRAW_DECK_Y + DECK_HEIGHT + 5, // Abaixo da figura
                  ALLEGRO_ALIGN_CENTER, 
                  "COMPRA");
 }
+
 
 void RenderDiscardPile(Renderer* renderer) {
     int discard_x = DISPLAY_WIDTH - 100;
@@ -940,6 +957,7 @@ void Render(Renderer* renderer) {
   RenderCreature(renderer, &renderer->combat.player.base, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS, PLAYER_RADIUS);
   RenderEnergy(renderer);
   RenderDiscardPile(renderer);
+  RenderDrawPile(renderer);
   RenderEnemies(renderer);
   RenderPlayerHand(renderer);
   al_set_target_backbuffer(renderer->display);

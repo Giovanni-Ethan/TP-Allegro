@@ -133,29 +133,28 @@ int main() {
     }
 
     // 2. LÓGICA DE FIM DE JOGO
-    } else if (renderer.combat.state == GAME_OVER) {
-      // Tela de Game Over. Espera ENTER para reiniciar.
-      if (keyboard_keys[ALLEGRO_KEY_ENTER] & GAME_KEY_DOWN) {
-      // Reinicia o jogo (vida cheia, volta ao Combate 1)
-        InitializePlayer(&renderer.combat.player);
-        renderer.combat.current_combat_number = 1;
-        InitializeCombat(&renderer.combat);
-      } 
-
-    // Permite sair do jogo (Q)
-    if (keyboard_keys[ALLEGRO_KEY_Q] & GAME_KEY_DOWN) {
-      done = 1;
-      break;
-    }
+    } if (renderer.combat.state == GAME_OVER) {
+        // Tela de Game Over. Espera ENTER para reiniciar.
+        if (keyboard_keys[ALLEGRO_KEY_ENTER] & GAME_KEY_DOWN) {
+            // Reinicia o jogo
+            InitializePlayer(&renderer.combat.player);
+            renderer.combat.current_combat_number = 1;
+            InitializeCombat(&renderer.combat);
+        }
+        
+        // Permite sair do jogo (Q)
+        if (keyboard_keys[ALLEGRO_KEY_Q] & GAME_KEY_DOWN) {
+            done = 1;
+            break;
+        }
 
     } else if (renderer.combat.state == GAME_WON) {
-    // Tela de Jogo Vencido (Todos os mistérios da torre são revelados!) 
-    // Permite sair do jogo (Q)
-    if (keyboard_keys[ALLEGRO_KEY_Q] & GAME_KEY_DOWN) {
-    done = 1;
-    break;
+        // Tela de Jogo Vencido. Permite sair do jogo (Q)
+        if (keyboard_keys[ALLEGRO_KEY_Q] & GAME_KEY_DOWN) {
+            done = 1;
+            break;
+        }
     }
- }
 
 
   ClearKeyboardKeys(keyboard_keys);

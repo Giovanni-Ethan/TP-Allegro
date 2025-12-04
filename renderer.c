@@ -953,30 +953,70 @@ void Render(Renderer* renderer) {
   RenderBackground(renderer);
 
   if (renderer->combat.state != GAME_OVER && renderer->combat.state != GAME_WON) {
-  RenderDeck(renderer, DRAW_DECK_X, DRAW_DECK_Y);
-  RenderCreature(renderer, &renderer->combat.player.base, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS, PLAYER_RADIUS);
-  RenderEnergy(renderer);
-  RenderDiscardPile(renderer);
-  RenderDrawPile(renderer);
-  RenderEnemies(renderer);
-  RenderPlayerHand(renderer);
-  al_set_target_backbuffer(renderer->display);
-
-  al_draw_scaled_bitmap(renderer->display_buffer, 0, 0, DISPLAY_BUFFER_WIDTH, DISPLAY_BUFFER_HEIGHT, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, 0);
-
-     RenderCombatNumber(renderer); 
+    al_clear_to_color(al_map_rgb(20, 20, 30));
+    RenderDeck(renderer, DRAW_DECK_X, DRAW_DECK_Y);
+    RenderCreature(renderer, &renderer->combat.player.base, PLAYER_BEGIN_X, PLAYER_BEGIN_Y + PLAYER_RADIUS, PLAYER_RADIUS);
+    RenderEnergy(renderer);
+    RenderDiscardPile(renderer);
+    RenderDrawPile(renderer);
+    RenderEnemies(renderer);
+    RenderPlayerHand(renderer);
+    RenderCombatNumber(renderer); 
+    
+} else if (renderer->combat.state == GAME_OVER) {
+        // --- TELA DE DERROTA (GAME OVER) ---
         
-    } else if (renderer->combat.state == GAME_OVER) {
-        // Renderiza a tela de GAME OVER
-        al_draw_text(renderer->font, al_map_rgb(255, 0, 0), DISPLAY_BUFFER_WIDTH / 2, DISPLAY_BUFFER_HEIGHT / 2, ALLEGRO_ALIGN_CENTER, "GAME OVER! Pressione ENTER para recomeçar.");
+        // 1.2 Limpa com a cor de GAME OVER (PRETO)
+        al_clear_to_color(al_map_rgb(0, 0, 0)); 
+        
+        // Título de Game Over (Branco)
+        al_draw_text(renderer->font, 
+                     al_map_rgb(255, 255, 255), 
+                     DISPLAY_BUFFER_WIDTH / 2.0, 
+                     DISPLAY_BUFFER_HEIGHT / 2.0 - 50, 
+                     ALLEGRO_ALIGN_CENTER, 
+                     "GAME OVER");
+        
+        // Instrução
+        al_draw_text(renderer->font, 
+                     al_map_rgb(255, 255, 255), 
+                     DISPLAY_BUFFER_WIDTH / 2.0, 
+                     DISPLAY_BUFFER_HEIGHT / 2.0 + 50, 
+                     ALLEGRO_ALIGN_CENTER, 
+                     "Pressione ENTER para Recomecar ou Q para Sair.");
         
     } else if (renderer->combat.state == GAME_WON) {
-        // Renderiza a tela de VITÓRIA
-        al_draw_text(renderer->font, al_map_rgb(0, 255, 0), DISPLAY_BUFFER_WIDTH / 2, DISPLAY_BUFFER_HEIGHT / 2,  ALLEGRO_ALIGN_CENTER, "VITÓRIA! Os mistérios da torre foram revelados!");
+        // --- TELA DE VITÓRIA (JOGO VENCIDO) ---
+        
+        // 1.3 Limpa com a cor de VITÓRIA (AZUL ESCURO)
+        al_clear_to_color(al_map_rgb(0, 0, 50)); 
+        
+        // Título de Vitória (Amarelo)
+        al_draw_text(renderer->font, 
+                     al_map_rgb(255, 255, 0), 
+                     DISPLAY_BUFFER_WIDTH / 2.0, 
+                     DISPLAY_BUFFER_HEIGHT / 2.0 - 50, 
+                     ALLEGRO_ALIGN_CENTER, 
+                     "VITÓRIA! OS MISTÉRIOS DA TORRE FORAM REVELADOS!");
+        
+        // Instrução
+        al_draw_text(renderer->font, 
+                     al_map_rgb(255, 255, 255), 
+                     DISPLAY_BUFFER_WIDTH / 2.0, 
+                     DISPLAY_BUFFER_HEIGHT / 2.0 + 50, 
+                     ALLEGRO_ALIGN_CENTER, 
+                     "Pressione Q para Sair.");
     }
-
-
-al_flip_display();
+    
+    // 2. Desenha o Buffer na Tela e Inverte o Display
+    al_set_target_backbuffer(al_get_current_display());
+    al_draw_scaled_bitmap(renderer->display_buffer,
+                          0, 0,
+                          DISPLAY_BUFFER_WIDTH, DISPLAY_BUFFER_HEIGHT,
+                          0, 0,
+                          DISPLAY_WIDTH, DISPLAY_HEIGHT,
+                          0);
+    al_flip_display();
 }
 
 void ClearRenderer(Renderer* renderer) {
